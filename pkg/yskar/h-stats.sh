@@ -23,12 +23,14 @@ for log in $(ls "${CUSTOM_LOG_BASENAME}"_gpu*.log 2>/dev/null | sort -V); do
   alter=$(( jetzt - $(stat -c %Y "$log") ))
   mhs=0
   if (( alter < 180 )); then
+    # Wert in H/s -- der Agent kennt laut offiziellem Contract nur "hs"
+    # (siehe hiveos-linux/hive/miners/*/h-stats.sh), keine abgeleiteten Einheiten.
     mhs=$(tac "$log" | grep -m1 -E '\] 10s ' | awk '{
       for (i = 1; i <= NF; i++) if ($i == "10s") { v = $(i+1); u = $(i+2); break }
       gsub(/\./, "", v); sub(/,/, ".", v)
       f = 0
-      if (u == "H/s") f = 1e-6; else if (u == "kH/s") f = 1e-3; else if (u == "MH/s") f = 1
-      else if (u == "GH/s") f = 1e3; else if (u == "TH/s") f = 1e6
+      if (u == "H/s") f = 1; else if (u == "kH/s") f = 1e3; else if (u == "MH/s") f = 1e6
+      else if (u == "GH/s") f = 1e9; else if (u == "TH/s") f = 1e12
       printf "%.2f", v * f }')
     [[ -z $mhs ]] && mhs=0
   fi
@@ -47,10 +49,10 @@ done
 uptime=0
 [[ -r $YSKAR_DIR/.gestartet ]] && uptime=$(( jetzt - $(< "$YSKAR_DIR/.gestartet") ))
 
-khs=$(awk -v x="$summe_mhs" 'BEGIN { printf "%.0f", x * 1000 }')
+khs=$(awk -v x="$summe_mhs" 'BEGIN { printf "%.0f", x / 1000 }')
 stats=$(jq -nc \
   --argjson hs "$hs_json" --argjson temp "$temp_json" --argjson fan "$fan_json" \
   --argjson bus "$bus_json" --argjson uptime "$uptime" \
   --argjson acc "$acc" --argjson rej "$rej" --arg ver "$CUSTOM_VERSION" \
-  '{hs: $hs, hs_units: "mhs", temp: $temp, fan: $fan, uptime: $uptime,
+  '{hs: $hs, hs_units: "hs", temp: $temp, fan: $fan, uptime: $uptime,
     ver: $ver, ar: [$acc, $rej], algo: "sha256d", bus_numbers: $bus}')
