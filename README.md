@@ -2,14 +2,14 @@
 
 HiveOS custom miner for YSKAR (YSR). NVIDIA only.
 
-It bundles the official CLI miner from [dabitlex/YSKAR](https://github.com/dabitlex/YSKAR), a Linux build of `yskar-cuda` (CUDA 12.8, GTX 9xx to RTX 50xx, glibc 2.17 or newer) and Node 20.
+It bundles the official CLI miner from [dabitlex/YSKAR](https://github.com/dabitlex/YSKAR), the official Linux build of `yskar-cuda` from Node Core 0.7.0 (CUDA 12.8, GTX 9xx to RTX 50xx, glibc 2.17 or newer) and Node 20.
 
 ## Flight sheet
 
 In HiveOS, open Flight Sheets, click **Import from Clipboard** and paste this:
 
 ```json
-{"isFavorite":false,"items":[{"coin":"YSR","pool_ssl":false,"dpool_ssl":false,"miner":"custom","miner_alt":"yskar","miner_config":{"url":"https://yskar-main.dynv6.net","miner":"yskar","template":"%WAL%.%WORKER_NAME%","install_url":"https://github.com/derhier/yskar-hiveos/releases/download/v0.1.0/yskar-0.1.0.tar.gz","user_config":"MODE=pool"},"pool_geo":[]}]}
+{"isFavorite":false,"items":[{"coin":"YSR","pool_ssl":false,"dpool_ssl":false,"miner":"custom","miner_alt":"yskar","miner_config":{"url":"https://yskar-main.dynv6.net","miner":"yskar","template":"%WAL%.%WORKER_NAME%","install_url":"https://github.com/derhier/yskar-hiveos/releases/download/v0.2.0/yskar-0.2.0.tar.gz","user_config":"MODE=pool"},"pool_geo":[]}]}
 ```
 
 Then select your own wallet. Create one under Wallets first, with coin `YSR` and your `ysr1…` address.
