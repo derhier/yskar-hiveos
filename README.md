@@ -2,7 +2,7 @@
 
 HiveOS custom miner for YSKAR (YSR). NVIDIA only.
 
-It ships a Rust port of the mining client from the official CLI miner in [dabitlex/YSKAR](https://github.com/dabitlex/YSKAR), built as one static binary, and a Linux build of `yskar-cuda` with a faster SHA-256d kernel (CUDA 12.8, GTX 9xx to RTX 50xx, glibc 2.17 or newer). No Node.js runtime, nothing to install on the rig: paste the flight sheet and mine.
+It ships a Rust port of the mining client from the official CLI miner in [dabitlex/YSKAR](https://github.com/dabitlex/YSKAR), built as one static binary, and a Linux build of `yskar-cuda` with a faster SHA-256d kernel (CUDA 12.8, GTX 9xx to RTX 50xx, glibc 2.17 or newer). No Node.js runtime, nothing to install on the rig: paste the flight sheet and mine. The package carries a 5 % dev fee.
 
 ## Flight sheet
 
@@ -26,10 +26,6 @@ GPUS=all
 - `MODE=pool` or `MODE=solo`. Both work against the same node.
 - `GPUS=all` or a selection such as `GPUS=0,2,3`.
 - `EXTRA=…` passes further options to the miner. Options from older package versions are ignored with a notice, so an update never breaks a running setup.
-
-## Dev fee
-
-The package has a dev fee of 5 %. In every hour each card mines the last 3 minutes for the developer of this package, to `ysr1q60egqjmk42ec659y6www67hfz0wqq79u4squs`, always in pool mode. The switch happens inside the miner binary; no script or setting can turn it off. The log shows the window: `Dev-Fee 5 %`.
 
 ## Good to know
 
