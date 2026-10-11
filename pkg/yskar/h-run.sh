@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Startet je Grafikkarte einen Miner-Prozess. Der Miner bedient genau eine
-# Karte (--device n); mehrere Prozesse auf dieselbe Adresse sind vom Projekt
-# ausdruecklich vorgesehen. Die Dev-Fee steckt im Miner selbst -- hier gibt
-# es dafuer keinen Schalter und keine Adresse.
+# Starts one miner process per GPU. The miner serves exactly one card
+# (--device n); several processes on the same address are explicitly
+# supported by the project. The dev fee lives inside the miner binary --
+# there is no switch and no address for it here.
 
 cd "$(dirname "$(readlink -f "$0")")" || exit 1
 . ./h-manifest.conf
@@ -14,7 +14,11 @@ cd "$(dirname "$(readlink -f "$0")")" || exit 1
 # the redirect (no API rate limit), and on a mismatch download and
 # extract the package over this directory, then restart into it.
 DIR="$PWD"
-if [[ ${YSKAR_UPDATED:-} != 1 ]]; then
+# Update only inside a real package installation: the directory must contain
+# the manifest file and be named "yskar". From anywhere else (a flat extract
+# or a copied tree) --strip-components=1 would spill the package files into
+# the wrong directory -- so no update there.
+if [[ ${YSKAR_UPDATED:-} != 1 && -f h-manifest.conf && ${PWD##*/} == "yskar" ]]; then
   neueste=$(curl -sm 10 -o /dev/null -w '%{redirect_url}' \
     https://github.com/derhier/yskar-hiveos/releases/latest 2>/dev/null \
     | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 | tr -d v)
@@ -50,7 +54,7 @@ CUDA="$DIR/miner/gpu/yskar-cuda"
 chmod +x "$MINER" "$CUDA" 2>/dev/null
 mkdir -p "$(dirname "$CUSTOM_LOG_BASENAME")"
 
-# Gleiche Reihenfolge wie HiveOS (nach PCI-Bus).
+# Same order as HiveOS (by PCI bus).
 export CUDA_DEVICE_ORDER=PCI_BUS_ID
 
 anzahl=$("$CUDA" --probe 2>/dev/null | grep -c '"t":"device"')
@@ -75,8 +79,8 @@ modus=()
 [[ $MODE == pool ]] && modus=(--mode pool)
 
 kinder=()
-# Erst die Miner unter den Schleifen beenden (Signale reichen weiter),
-# dann die Schleifen selbst.
+# End the miners under the loops first (signals are passed through),
+# then the loops themselves.
 ende() {
   trap - INT TERM EXIT
   for k in "${kinder[@]}"; do pkill -P "$k" 2>/dev/null; done
@@ -89,8 +93,8 @@ for n in $liste; do
   [[ $n =~ ^[0-9]+$ ]] && (( n < anzahl )) || { echo "GPU $n does not exist, skipped"; continue; }
   (
     cd "$DIR/miner" || exit 1
-    # Endet der Miner (Pool nicht erreichbar, Karte ausgefallen), nach
-    # 15 Sekunden neu starten -- nur diese Karte, die anderen laufen weiter.
+    # If the miner exits (pool unreachable, GPU dead), restart it after
+    # 15 seconds -- only this card, the others keep running.
     while true; do
       "$MINER" --address "$ADDRESS" "${args[@]}" "${modus[@]}" --device "$n" </dev/null 2>&1 \
         | while IFS= read -r z; do
