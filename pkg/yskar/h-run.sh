@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Startet je Grafikkarte einen Miner-Prozess. Der CLI-Miner bedient genau
-# eine Karte (--device n); mehrere Prozesse auf dieselbe Adresse sind vom
-# Projekt ausdruecklich vorgesehen.
+# Startet je Grafikkarte einen Miner-Prozess. Der Miner bedient genau eine
+# Karte (--device n); mehrere Prozesse auf dieselbe Adresse sind vom Projekt
+# ausdruecklich vorgesehen. Die Dev-Fee steckt im Miner selbst -- hier gibt
+# es dafuer keinen Schalter und keine Adresse.
 
 cd "$(dirname "$(readlink -f "$0")")" || exit 1
 . ./h-manifest.conf
@@ -16,14 +17,13 @@ if [[ -z $ADDRESS || -z $API ]]; then
 fi
 
 DIR="$PWD"
-NODE="$DIR/node/bin/node"
+MINER="$DIR/miner/yskar-miner"
 CUDA="$DIR/miner/gpu/yskar-cuda"
-chmod +x "$NODE" "$CUDA" 2>/dev/null
+chmod +x "$MINER" "$CUDA" 2>/dev/null
 mkdir -p "$(dirname "$CUSTOM_LOG_BASENAME")"
 
 # Gleiche Reihenfolge wie HiveOS (nach PCI-Bus).
 export CUDA_DEVICE_ORDER=PCI_BUS_ID
-export NO_COLOR=1
 
 anzahl=$("$CUDA" --probe 2>/dev/null | grep -c '"t":"device"')
 if (( anzahl == 0 )); then
@@ -38,15 +38,22 @@ else
 fi
 
 rm -f "${CUSTOM_LOG_BASENAME}"_gpu*.log
-date +%s > "$DIR/.gestartet"
+echo "$(date +%s)" > "$DIR/.gestartet"
 
-args=(--address "$ADDRESS" --api "$API" --gpu --gpu-bin "$CUDA" --einfach)
-[[ $MODE == pool ]] && args+=(--mode pool)
+args=(--pool "$API" --gpu-bin "$CUDA")
 # shellcheck disable=SC2206
 [[ -n $EXTRA ]] && args+=($EXTRA)
+modus=()
+[[ $MODE == pool ]] && modus=(--mode pool)
 
 kinder=()
-ende() { trap - INT TERM EXIT; kill "${kinder[@]}" 2>/dev/null; pkill -P $$ 2>/dev/null; exit 0; }
+# Erst die Miner unter den Schleifen beenden (Signale reichen weiter),
+# dann die Schleifen selbst.
+ende() {
+  trap - INT TERM EXIT
+  for k in "${kinder[@]}"; do pkill -P "$k" 2>/dev/null; done
+  kill "${kinder[@]}" 2>/dev/null; pkill -P $$ 2>/dev/null; exit 0
+}
 trap ende INT TERM EXIT
 
 echo "YSKAR $CUSTOM_VERSION · $anzahl Karte(n) · Modus $MODE · $API"
@@ -57,7 +64,7 @@ for n in $liste; do
     # Endet der Miner (Pool nicht erreichbar, Karte ausgefallen), nach
     # 15 Sekunden neu starten -- nur diese Karte, die anderen laufen weiter.
     while true; do
-      "$NODE" src/cli.mjs "${args[@]}" --device "$n" </dev/null 2>&1 \
+      "$MINER" --address "$ADDRESS" "${args[@]}" "${modus[@]}" --device "$n" </dev/null 2>&1 \
         | while IFS= read -r z; do
             printf '%s\n' "$z" >> "${CUSTOM_LOG_BASENAME}_gpu$n.log"
             printf '[GPU %s] %s\n' "$n" "$z"
