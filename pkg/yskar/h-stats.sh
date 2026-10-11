@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Wird vom HiveOS-Agenten eingelesen (source) und muss $khs und $stats setzen.
 # Quelle sind die Logs je Karte: Der Miner schreibt einmal je Minute
-#   [12:00:00] 10s 3,52 GH/s 60s 3,51 GH/s 15m 3,50 GH/s · ...
-# und je Share eine Zeile "angenommen #n" bzw. "abgelehnt <grund>".
+#   [12:00:00] 10s 3.52 GH/s 60s 3.51 GH/s 15m 3.50 GH/s · ...
+# und je Share eine Zeile "accepted #n" bzw. "rejected <reason>".
 
 . /hive/miners/custom/yskar/h-manifest.conf 2>/dev/null \
   || . "$(dirname "${BASH_SOURCE[0]}")/h-manifest.conf"
@@ -27,14 +27,14 @@ for log in $(ls "${CUSTOM_LOG_BASENAME}"_gpu*.log 2>/dev/null | sort -V); do
     # (siehe hiveos-linux/hive/miners/*/h-stats.sh), keine abgeleiteten Einheiten.
     mhs=$(tac "$log" | grep -m1 -E '\] 10s ' | awk '{
       for (i = 1; i <= NF; i++) if ($i == "10s") { v = $(i+1); u = $(i+2); break }
-      gsub(/\./, "", v); sub(/,/, ".", v)
+      gsub(/,/, "", v)
       f = 0
       if (u == "H/s") f = 1; else if (u == "kH/s") f = 1e3; else if (u == "MH/s") f = 1e6
       else if (u == "GH/s") f = 1e9; else if (u == "TH/s") f = 1e12
       printf "%.2f", v * f }')
     [[ -z $mhs ]] && mhs=0
   fi
-  a=$(grep -c ' angenommen #' "$log"); r=$(grep -c ' abgelehnt ' "$log")
+  a=$(grep -c ' accepted #' "$log"); r=$(grep -c ' rejected ' "$log")
   acc=$(( acc + a )); rej=$(( rej + r ))
   summe_mhs=$(awk -v x="$summe_mhs" -v y="$mhs" 'BEGIN { printf "%.2f", x + y }')
   hs_json=$(jq -c --argjson v "$mhs" '. + [$v]' <<< "$hs_json")
